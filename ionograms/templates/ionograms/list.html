@@ -1,0 +1,253 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Ионограммы</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.9/flatpickr.min.css">
+    <style>
+        .container {
+            display: flex;
+            width: 100%;
+        }
+        .file-list {
+            width: 20%;
+            padding: 10px;
+            border-right: 1px solid #ccc;
+            position: relative;
+            overflow: hidden;
+        }
+        .main-content {
+            width: 80%;
+            display: flex;
+            flex-direction: column;
+        }
+        .graph-row {
+            display: flex;
+            width: 100%;
+        }
+        .ionogram-container {
+            width: 70%;
+            padding: 5px;
+        }
+        .passport-container {
+            width: 30%;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 700px;
+        }
+        .noise-container {
+            width: 100%;
+            padding: 5px;
+        }
+        .file-item {
+            padding: 5px;
+            cursor: pointer;
+        }
+        .file-item:hover {
+            background-color: #f0f0f0;
+        }
+        .selected {
+            background-color: #e0e0ff;
+            font-weight: bold;
+        }
+        .directory-item {
+            padding: 5px;
+            cursor: pointer;
+            color: #1a73e8;
+            font-weight: bold;
+        }
+        .directory-item:hover {
+            background-color: #e8f0fe;
+        }
+        .passport {
+            font-family: monospace;
+            white-space: pre;
+            text-align: left;
+            margin: 0;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .path-navigation {
+            padding: 10px;
+            background: #f5f5f5;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .back-link {
+            color: #1a73e8;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .current-path {
+            font-family: monospace;
+            word-break: break-all;
+        }
+        .date-files {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+            background-color: white;
+            display: none;
+        }
+        .date-file-item {
+            padding: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .date-file-item:hover {
+            background-color: #f0f0f0;
+        }
+        .calendar-section {
+            margin-bottom: 15px;
+        }
+        .calendar-title {
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+        }
+        .flatpickr-calendar {
+            width: 100% !important;
+            margin: 0 auto;
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+        .flatpickr-innerContainer {
+            width: 100% !important;
+        }
+        .flatpickr-days {
+            width: 100% !important;
+        }
+        .dayContainer {
+            width: 100% !important;
+            min-width: 100% !important;
+        }
+        .flatpickr-day {
+            height: 30px;
+            line-height: 30px;
+        }
+        .no-files-message {
+            padding: 10px;
+            color: #666;
+            text-align: center;
+            font-style: italic;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ионограммы</h1>
+    <div class="container">
+        <div class="file-list">
+            <div class="calendar-section">
+                <div class="calendar-title">Поиск по дате:</div>
+                <div id="embeddedCalendar"></div>
+                <div class="date-files" id="dateFiles"></div>
+            </div>
+            
+            <div class="path-navigation">
+                {% if parent_dir %}
+                    <div class="back-link" onclick="window.location.href='?path={{ parent_dir }}'">
+                        ← Назад
+                    </div>
+                {% endif %}
+                <div class="current-path">{{ base_path }}</div>
+            </div>
+            
+            <h3>Папки:</h3>
+            {% for dir in dirs %}
+                <div class="directory-item" 
+                     onclick="window.location.href='?path={{ base_path }}/{{ dir }}'">
+                    📁 {{ dir }}
+                </div>
+            {% endfor %}
+            
+            <h3>Файлы .dat:</h3>
+            {% for file in dat_files %}
+                <div class="file-item {% if file == selected_file %}selected{% endif %}" 
+                     onclick="window.location.href='?path={{ base_path }}&file={{ file }}'">
+                    {{ file }}
+                </div>
+            {% endfor %}
+            
+            {% if error %}
+                <div style="color: red; padding: 10px;">
+                    {{ error }}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="main-content">
+            {% if ionogram_html %}
+                <div class="graph-row">
+                    <div class="ionogram-container">
+                        {{ ionogram_html|safe }}
+                    </div>
+                    <div class="passport-container">
+                        <h3>Паспорт ионограммы:</h3>
+                        <div class="passport">{{ passport }}</div>
+                    </div>
+                </div>
+                
+                {% if noise_html %}
+                    <div class="noise-container">
+                        {{ noise_html|safe }}
+                    </div>
+                {% endif %}
+            {% else %}
+                <div style="padding: 20px;">
+                    <p>Выберите файл .dat, чтобы построить график</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.9/flatpickr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.9/l10n/ru.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Инициализация встроенного календаря
+            const calendar = flatpickr("#embeddedCalendar", {
+                locale: "ru",
+                dateFormat: "Y-m-d",
+                inline: true,
+                static: true,
+                showMonths: 1,
+                onChange: function(selectedDates, dateStr, instance) {
+                    const filesContainer = document.getElementById('dateFiles');
+                    filesContainer.style.display = 'block';
+                    
+                    fetch(`/get_files_by_date/?date=${dateStr}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            filesContainer.innerHTML = '';
+                            
+                            if (data.files && data.files.length > 0) {
+                                data.files.forEach(file => {
+                                    const fileItem = document.createElement('div');
+                                    fileItem.className = 'date-file-item';
+                                    fileItem.textContent = file.file;
+                                    fileItem.onclick = function() {
+                                        window.location.href = `?path=${encodeURIComponent(file.path)}&file=${file.file}`;
+                                    };
+                                    filesContainer.appendChild(fileItem);
+                                });
+                            } else {
+                                filesContainer.innerHTML = '<div class="no-files-message">Нет файлов для выбранной даты</div>';
+                            }
+                        });
+                }
+            });
+
+            // Устанавливаем сегодняшнюю дату по умолчанию
+            calendar.setDate(new Date());
+        });
+    </script>
+</body>
+</html>
